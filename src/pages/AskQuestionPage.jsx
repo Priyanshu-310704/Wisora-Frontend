@@ -16,7 +16,7 @@ export default function AskQuestionPage() {
 
   useEffect(() => {
     if (!currentUser) {
-      navigate('/register');
+      navigate('/login');
       return;
     }
     const fetchTopics = async () => {
@@ -53,12 +53,11 @@ export default function AskQuestionPage() {
     setError('');
     try {
       const res = await createQuestion(
-        currentUser.id,
         title.trim(),
         body.trim(),
         tags.length > 0 ? tags : undefined
       );
-      navigate(`/question/${res.data.id}`, { state: { question: res.data } });
+      navigate(`/question/${res.data._id}`);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to post question');
     } finally {
@@ -123,6 +122,7 @@ export default function AskQuestionPage() {
                 <span key={tag} className="tag-chip active group">
                   {tag}
                   <button
+                    type="button"
                     onClick={() => removeTag(tag)}
                     className="ml-1 text-white/70 hover:text-white"
                   >
@@ -147,7 +147,7 @@ export default function AskQuestionPage() {
                   .slice(0, 6)
                   .map((topic) => (
                     <button
-                      key={topic.id}
+                      key={topic._id}
                       type="button"
                       onClick={() => setTags([...tags, topic.name])}
                       className="tag-chip text-xs"

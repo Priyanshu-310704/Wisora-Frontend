@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { searchQuestions, getTopics } from '../api/api';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { searchQuestions, getQuestions, getTopics } from '../api/api';
 import QuestionCard from '../components/QuestionCard';
 import TopicFilter from '../components/TopicFilter';
 import LoadingSpinner from '../components/LoadingSpinner';
 import EmptyState from '../components/EmptyState';
 import { useUser } from '../context/UserContext';
-import { useNavigate } from 'react-router-dom';
 
 export default function HomePage() {
   const { currentUser } = useUser();
@@ -22,14 +21,24 @@ export default function HomePage() {
     const fetchData = async () => {
       setLoading(true);
       try {
+        const searchVal = searchParams.get('search') || '';
+        const tagVal = searchParams.get('tag') || '';
+
         const [qRes, tRes] = await Promise.allSettled([
-          searchQuestions(
-            searchParams.get('search') || '',
-            searchParams.get('tag') || ''
-          ),
+          searchVal || tagVal
+            ? searchQuestions(searchVal, tagVal)
+            : getQuestions(1),
           getTopics(),
         ]);
-        setQuestions(qRes.status === 'fulfilled' ? qRes.value.data || [] : []);
+
+        if (qRes.status === 'fulfilled') {
+          const data = qRes.value.data;
+          // getQuestions returns { questions, page, total }, searchQuestions returns array
+          setQuestions(Array.isArray(data) ? data : data.questions || []);
+        } else {
+          setQuestions([]);
+        }
+
         setTopics(tRes.status === 'fulfilled' ? tRes.value.data || [] : []);
       } catch {
         setQuestions([]);
@@ -95,7 +104,6 @@ export default function HomePage() {
           </button>
         </form>
 
-        {/* Topic chips */}
         {topics.length > 0 && (
           <div className="mt-4">
             <TopicFilter
@@ -113,7 +121,7 @@ export default function HomePage() {
       ) : questions.length > 0 ? (
         <div className="space-y-4">
           {questions.map((q, i) => (
-            <QuestionCard key={q.id} question={q} index={i} />
+            <QuestionCard key={q._id} question={q} index={i} />
           ))}
         </div>
       ) : (

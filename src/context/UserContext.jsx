@@ -16,15 +16,22 @@ export function UserProvider({ children }) {
     }
   }, [currentUser]);
 
-  const login = (user) => setCurrentUser(user);
+  const login = (data) => {
+    // Expects { token, user } from backend
+    if (data.token && data.user) {
+      localStorage.setItem('token', data.token);
+      setCurrentUser(data.user);
+    }
+  };
 
   const logout = () => {
     setCurrentUser(null);
     localStorage.removeItem('wisora_user');
+    localStorage.removeItem('token');
   };
 
   const updateUser = (data) =>
-    setCurrentUser((prev) => ({ ...prev, ...data }));
+    setCurrentUser((prev) => (prev ? { ...prev, ...data } : null));
 
   return (
     <UserContext.Provider value={{ currentUser, login, logout, updateUser }}>

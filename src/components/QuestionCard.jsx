@@ -21,13 +21,13 @@ export default function QuestionCard({ question, index = 0 }) {
       {/* Tags */}
       {question.topics && question.topics.length > 0 && (
         <div className="flex flex-wrap gap-1.5 mb-3">
-          {question.topics.map((tag, i) => (
+          {question.topics.map((tag) => (
             <Link
-              key={i}
-              to={`/?tag=${encodeURIComponent(typeof tag === 'string' ? tag : tag)}`}
+              key={tag._id || tag}
+              to={`/?tag=${encodeURIComponent(typeof tag === 'string' ? tag : tag.name)}`}
               className="tag-chip"
             >
-              {typeof tag === 'string' ? tag : tag}
+              {typeof tag === 'string' ? tag : tag.name}
             </Link>
           ))}
         </div>
@@ -35,8 +35,7 @@ export default function QuestionCard({ question, index = 0 }) {
 
       {/* Title */}
       <Link
-        to={`/question/${question.id}`}
-        state={{ question }}
+        to={`/question/${question._id}`}
         className="block group"
       >
         <h2 className="text-lg font-semibold text-slate-800 group-hover:text-indigo-600 transition-colors duration-200 leading-snug mb-2">
@@ -52,22 +51,31 @@ export default function QuestionCard({ question, index = 0 }) {
       {/* Footer */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <LikeButton type="questions" id={question.id} />
+          <LikeButton targetId={question._id} targetType="Question" />
           <Link
-            to={`/question/${question.id}`}
-            state={{ question }}
+            to={`/question/${question._id}`}
             className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-indigo-500 transition-colors duration-200"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
             </svg>
-            <span>Answers</span>
+            <span>{question.answerCount ?? 0} Answers</span>
           </Link>
         </div>
 
-        <span className="text-xs text-slate-400">
-          {timeAgo(question.created_at)}
-        </span>
+        <div className="flex items-center gap-2">
+          {question.user && (
+            <Link
+              to={`/profile/${question.user._id}`}
+              className="text-xs text-slate-500 hover:text-indigo-600 transition-colors font-medium"
+            >
+              {question.user.username}
+            </Link>
+          )}
+          <span className="text-xs text-slate-400">
+            · {timeAgo(question.createdAt)}
+          </span>
+        </div>
       </div>
     </div>
   );

@@ -1,7 +1,8 @@
-import { useState } from 'react';
-import { commentOnAnswer, replyToComment } from '../api/api';
+import { useState, useEffect } from 'react';
+import { commentOnAnswer, replyToComment, getCommentsByParent } from '../api/api';
 import { useUser } from '../context/UserContext';
 import LikeButton from './LikeButton';
+import { Link } from 'react-router-dom';
 
 function SingleComment({ comment, depth = 0 }) {
   const { currentUser } = useUser();
@@ -14,8 +15,8 @@ function SingleComment({ comment, depth = 0 }) {
     if (!replyText.trim() || !currentUser) return;
     setSubmitting(true);
     try {
-      const res = await replyToComment(comment.id, currentUser.id, replyText.trim());
-      setReplies((prev) => [...prev, res.data]);
+      const res = await replyToComment(comment._id, replyText.trim());
+      setReplies((prev) => [...prev, { ...res.data, replies: [] }]);
       setReplyText('');
       setReplying(false);
     } catch {
@@ -36,20 +37,28 @@ function SingleComment({ comment, depth = 0 }) {
     return `${Math.floor(diff / 86400)}d ago`;
   };
 
+  const username = comment.user?.username || 'Anonymous';
+
   return (
-    <div
-      className={`${depth > 0 ? 'ml-6 pl-4 border-l-2 border-indigo-100/60' : ''}`}
-    >
+    <div className={`${depth > 0 ? 'ml-6 pl-4 border-l-2 border-indigo-100/60' : ''}`}>
       <div className="py-3">
         <div className="flex items-start gap-2.5">
           <div className="w-6 h-6 rounded-full bg-gradient-to-br from-violet-400 to-fuchsia-400 flex items-center justify-center text-white text-[10px] font-bold mt-0.5 shrink-0">
-            C
+            {username[0]?.toUpperCase() || 'C'}
           </div>
           <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <Link
+                to={comment.user?._id ? `/profile/${comment.user._id}` : '#'}
+                className="text-xs font-medium text-slate-600 hover:text-indigo-600 transition-colors"
+              >
+                {username}
+              </Link>
+              <span className="text-xs text-slate-400">{timeAgo(comment.createdAt)}</span>
+            </div>
             <p className="text-sm text-slate-700 leading-relaxed">{comment.text}</p>
             <div className="flex items-center gap-3 mt-2">
-              <span className="text-xs text-slate-400">{timeAgo(comment.created_at)}</span>
-              <LikeButton type="comments" id={comment.id} initialCount={0} />
+              <LikeButton targetId={comment._id} targetType="Comment" />
               {currentUser && (
                 <button
                   onClick={() => setReplying(!replying)}
@@ -70,6 +79,7 @@ function SingleComment({ comment, depth = 0 }) {
                   placeholder="Write a reply..."
                   className="input-glass text-sm py-1.5 flex-1"
                   onKeyDown={(e) => e.key === 'Enter' && handleReply()}
+                  autoFocus
                 />
                 <button
                   onClick={handleReply}
@@ -89,7 +99,7 @@ function SingleComment({ comment, depth = 0 }) {
         <div className="space-y-0">
           {replies.map((reply) => (
             <SingleComment
-              key={reply.id}
+              key={reply._id}
               comment={reply}
               depth={depth + 1}
             />
@@ -100,18 +110,34 @@ function SingleComment({ comment, depth = 0 }) {
   );
 }
 
-export default function CommentThread({ answerId, comments: initialComments = [] }) {
+export default function CommentThread({ answerId }) {
   const { currentUser } = useUser();
-  const [comments, setComments] = useState(initialComments);
+  const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch comments on mount
+  useEffect(() => {
+    const fetchComments = async () => {
+      try {
+        const res = await getCommentsByParent(answerId);
+        setComments(res.data || []);
+      } catch {
+        setComments([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchComments();
+  }, [answerId]);
 
   const handleAddComment = async () => {
     if (!newComment.trim() || !currentUser) return;
     setSubmitting(true);
     try {
-      const res = await commentOnAnswer(answerId, currentUser.id, newComment.trim());
-      setComments((prev) => [...prev, res.data]);
+      const res = await commentOnAnswer(answerId, newComment.trim());
+      setComments((prev) => [...prev, { ...res.data, replies: [] }]);
       setNewComment('');
     } catch {
       // keep form
@@ -122,13 +148,20 @@ export default function CommentThread({ answerId, comments: initialComments = []
 
   return (
     <div className="space-y-1">
-      {/* Comment list */}
-      {comments.map((comment) => (
-        <SingleComment key={comment.id} comment={comment} />
-      ))}
+      {/* Loading */}
+      {loading ? (
+        <p className="text-xs text-slate-400 py-2">Loading comments...</p>
+      ) : (
+        <>
+          {/* Comment list */}
+          {comments.map((comment) => (
+            <SingleComment key={comment._id} comment={comment} />
+          ))}
 
-      {comments.length === 0 && (
-        <p className="text-xs text-slate-400 py-2">No comments yet. Be the first!</p>
+          {comments.length === 0 && (
+            <p className="text-xs text-slate-400 py-2">No comments yet. Be the first!</p>
+          )}
+        </>
       )}
 
       {/* New comment input */}

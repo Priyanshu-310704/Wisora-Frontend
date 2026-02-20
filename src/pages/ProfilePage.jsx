@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
-import { getUserProfile, updateUserProfile, followUser } from '../api/api';
+import { useParams, Link } from 'react-router-dom';
+import { getUserProfile, updateUserProfile, toggleFollow, getUserQuestions } from '../api/api';
 import { useUser } from '../context/UserContext';
 import LoadingSpinner from '../components/LoadingSpinner';
 
@@ -8,34 +8,47 @@ export default function ProfilePage() {
   const { userId } = useParams();
   const { currentUser, updateUser } = useUser();
   const [profile, setProfile] = useState(null);
+  const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
-  const [editData, setEditData] = useState({ username: '', email: '', bio: '' });
+  const [editData, setEditData] = useState({ username: '', bio: '' });
   const [saving, setSaving] = useState(false);
-  const [following, setFollowing] = useState(false);
-  const [followed, setFollowed] = useState(false);
+  const [followLoading, setFollowLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const isOwnProfile = currentUser && String(currentUser.id) === String(userId);
+  const isOwnProfile = currentUser && String(currentUser._id) === String(userId);
+
+  const isFollowing = currentUser && profile?.followers?.some(
+    (f) => String(f._id || f) === String(currentUser._id)
+  );
 
   useEffect(() => {
-    const fetchProfile = async () => {
+    const fetchData = async () => {
       setLoading(true);
       try {
-        const res = await getUserProfile(userId);
-        setProfile(res.data);
-        setEditData({
-          username: res.data.username || '',
-          email: res.data.email || '',
-          bio: res.data.bio || '',
-        });
+        const [profileRes, questionsRes] = await Promise.allSettled([
+          getUserProfile(userId),
+          getUserQuestions(userId),
+        ]);
+
+        if (profileRes.status === 'fulfilled') {
+          setProfile(profileRes.value.data);
+          setEditData({
+            username: profileRes.value.data.username || '',
+            bio: profileRes.value.data.bio || '',
+          });
+        }
+
+        if (questionsRes.status === 'fulfilled') {
+          setQuestions(questionsRes.value.data || []);
+        }
       } catch {
         setProfile(null);
       } finally {
         setLoading(false);
       }
     };
-    fetchProfile();
+    fetchData();
   }, [userId]);
 
   const handleSave = async () => {
@@ -43,7 +56,7 @@ export default function ProfilePage() {
     setError('');
     try {
       const res = await updateUserProfile(userId, editData);
-      setProfile(res.data);
+      setProfile((prev) => ({ ...prev, ...res.data }));
       if (isOwnProfile) updateUser(res.data);
       setEditing(false);
     } catch (err) {
@@ -53,16 +66,18 @@ export default function ProfilePage() {
     }
   };
 
-  const handleFollow = async () => {
+  const handleToggleFollow = async () => {
     if (!currentUser) return;
-    setFollowing(true);
+    setFollowLoading(true);
     try {
-      await followUser(currentUser.id, userId);
-      setFollowed(true);
+      const res = await toggleFollow(userId);
+      // Refresh profile to get updated followers list
+      const updated = await getUserProfile(userId);
+      setProfile(updated.data);
     } catch {
       // silent
     } finally {
-      setFollowing(false);
+      setFollowLoading(false);
     }
   };
 
@@ -79,7 +94,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto animate-slide-up">
+    <div className="max-w-2xl mx-auto animate-slide-up space-y-4">
       {/* Profile card */}
       <div className="glass-card overflow-hidden">
         {/* Banner */}
@@ -89,7 +104,7 @@ export default function ProfilePage() {
 
         <div className="px-6 sm:px-8 pb-6">
           {/* Avatar */}
-          <div className="flex items-end justify-between -mt-12 mb-4">
+          <div className="relative flex items-end justify-between -mt-12 mb-4">
             <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white text-3xl font-bold shadow-xl border-4 border-white">
               {profile.username?.[0]?.toUpperCase() || 'U'}
             </div>
@@ -103,11 +118,11 @@ export default function ProfilePage() {
             ) : (
               currentUser && (
                 <button
-                  onClick={handleFollow}
-                  disabled={following || followed}
-                  className={`mt-14 ${followed ? 'btn-secondary' : 'btn-primary'}`}
+                  onClick={handleToggleFollow}
+                  disabled={followLoading}
+                  className={`mt-14 ${isFollowing ? 'btn-secondary' : 'btn-primary'}`}
                 >
-                  {following ? 'Following...' : followed ? '✓ Following' : 'Follow'}
+                  {followLoading ? '...' : isFollowing ? '✓ Following' : 'Follow'}
                 </button>
               )
             )}
@@ -121,15 +136,6 @@ export default function ProfilePage() {
                   type="text"
                   value={editData.username}
                   onChange={(e) => setEditData({ ...editData, username: e.target.value })}
-                  className="input-glass"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-600 mb-1">Email</label>
-                <input
-                  type="email"
-                  value={editData.email}
-                  onChange={(e) => setEditData({ ...editData, email: e.target.value })}
                   className="input-glass"
                 />
               </div>
@@ -166,12 +172,12 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* Stats placeholder */}
-      <div className="grid grid-cols-3 gap-3 mt-4">
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-3">
         {[
-          { label: 'Questions', value: '—', icon: '❓' },
-          { label: 'Answers', value: '—', icon: '💬' },
-          { label: 'Likes', value: '—', icon: '❤️' },
+          { label: 'Questions', value: profile.questionsCount ?? 0, icon: '❓' },
+          { label: 'Answers', value: profile.answersCount ?? 0, icon: '💬' },
+          { label: 'Followers', value: profile.followers?.length ?? 0, icon: '👥' },
         ].map((stat) => (
           <div key={stat.label} className="glass-card p-4 text-center">
             <div className="text-2xl mb-1">{stat.icon}</div>
@@ -180,6 +186,32 @@ export default function ProfilePage() {
           </div>
         ))}
       </div>
+
+      {/* User's questions */}
+      {questions.length > 0 && (
+        <div className="glass-card p-5">
+          <h2 className="text-base font-semibold text-slate-700 mb-3">Recent Questions</h2>
+          <div className="space-y-2">
+            {questions.slice(0, 5).map((q) => (
+              <Link
+                key={q._id}
+                to={`/question/${q._id}`}
+                className="block px-3 py-2.5 rounded-lg hover:bg-indigo-50/80 transition-colors group"
+              >
+                <h3 className="text-sm font-medium text-slate-700 group-hover:text-indigo-600 transition-colors">
+                  {q.title}
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  {new Date(q.createdAt).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                  })}
+                </p>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

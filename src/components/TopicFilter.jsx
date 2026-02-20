@@ -1,6 +1,6 @@
 export default function TopicFilter({ topics, activeTopic, onSelect }) {
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap gap-1.5">
       <button
         onClick={() => onSelect('')}
         className={`tag-chip ${!activeTopic ? 'active' : ''}`}
@@ -9,8 +9,8 @@ export default function TopicFilter({ topics, activeTopic, onSelect }) {
       </button>
       {topics.map((topic) => (
         <button
-          key={topic.id}
-          onClick={() => onSelect(topic.name)}
+          key={topic._id}
+          onClick={() => onSelect(activeTopic === topic.name ? '' : topic.name)}
           className={`tag-chip ${activeTopic === topic.name ? 'active' : ''}`}
         >
           {topic.name}

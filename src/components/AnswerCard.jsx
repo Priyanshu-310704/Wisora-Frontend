@@ -1,29 +1,44 @@
 import { useState } from 'react';
-import { editAnswer } from '../api/api';
+import { editAnswer, deleteAnswer } from '../api/api';
 import { useUser } from '../context/UserContext';
 import LikeButton from './LikeButton';
 import CommentThread from './CommentThread';
+import { Link } from 'react-router-dom';
 
-export default function AnswerCard({ answer, onUpdate }) {
+export default function AnswerCard({ answer, onUpdate, onDelete }) {
   const { currentUser } = useUser();
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState(answer.text);
   const [showComments, setShowComments] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
-  const isOwner = currentUser && currentUser.id === answer.user_id;
+  const isOwner = currentUser && String(currentUser._id) === String(answer.user?._id || answer.user);
 
   const handleSave = async () => {
     if (!editText.trim()) return;
     setSaving(true);
     try {
-      const res = await editAnswer(answer.id, editText.trim());
+      const res = await editAnswer(answer._id, editText.trim());
       if (onUpdate) onUpdate(res.data);
       setEditing(false);
     } catch {
       // keep editing on error
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!confirm('Delete this answer?')) return;
+    setDeleting(true);
+    try {
+      await deleteAnswer(answer._id);
+      if (onDelete) onDelete(answer._id);
+    } catch {
+      // silent
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -38,23 +53,42 @@ export default function AnswerCard({ answer, onUpdate }) {
     return `${Math.floor(diff / 86400)}d ago`;
   };
 
+  const username = answer.user?.username || 'Anonymous';
+
   return (
     <div className="glass-card p-5 animate-fade-in">
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white text-xs font-bold">
-            A
-          </div>
-          <span className="text-xs text-slate-400">{timeAgo(answer.created_at)}</span>
+          <Link
+            to={answer.user?._id ? `/profile/${answer.user._id}` : '#'}
+            className="flex items-center gap-2 group"
+          >
+            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white text-xs font-bold">
+              {username[0]?.toUpperCase() || 'A'}
+            </div>
+            <span className="text-sm font-medium text-slate-600 group-hover:text-indigo-600 transition-colors">
+              {username}
+            </span>
+          </Link>
+          <span className="text-xs text-slate-400">· {timeAgo(answer.createdAt)}</span>
         </div>
         {isOwner && !editing && (
-          <button
-            onClick={() => setEditing(true)}
-            className="text-xs text-indigo-400 hover:text-indigo-600 font-medium transition-colors"
-          >
-            Edit
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setEditing(true)}
+              className="text-xs text-indigo-400 hover:text-indigo-600 font-medium transition-colors"
+            >
+              Edit
+            </button>
+            <button
+              onClick={handleDelete}
+              disabled={deleting}
+              className="text-xs text-red-400 hover:text-red-600 font-medium transition-colors"
+            >
+              {deleting ? '...' : 'Delete'}
+            </button>
+          </div>
         )}
       </div>
 
@@ -94,7 +128,7 @@ export default function AnswerCard({ answer, onUpdate }) {
 
       {/* Actions */}
       <div className="flex items-center gap-3 mt-4 pt-3 border-t border-slate-100">
-        <LikeButton type="answers" id={answer.id} />
+        <LikeButton targetId={answer._id} targetType="Answer" />
         <button
           onClick={() => setShowComments(!showComments)}
           className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-indigo-500 transition-colors duration-200"
@@ -109,7 +143,7 @@ export default function AnswerCard({ answer, onUpdate }) {
       {/* Comments */}
       {showComments && (
         <div className="mt-4 animate-slide-up">
-          <CommentThread answerId={answer.id} />
+          <CommentThread answerId={answer._id} />
         </div>
       )}
     </div>

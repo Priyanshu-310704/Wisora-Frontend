@@ -1,39 +1,30 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { registerUser } from '../api/api';
+import { loginUser } from '../api/api';
 import { useUser } from '../context/UserContext';
 
-export default function RegisterPage() {
+export default function LoginPage() {
   const { login } = useUser();
   const navigate = useNavigate();
-  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
-
-    if (!username.trim() || !email.trim() || !password) {
-      return setError('Please fill in all fields');
+    if (!email.trim() || !password) {
+      setError('Please fill in all fields');
+      return;
     }
-    if (password.length < 6) {
-      return setError('Password must be at least 6 characters');
-    }
-    if (password !== confirmPassword) {
-      return setError('Passwords do not match');
-    }
-
     setLoading(true);
+    setError('');
     try {
-      const res = await registerUser(username.trim(), email.trim(), password);
+      const res = await loginUser(email.trim(), password);
       login(res.data); // { token, user }
       navigate('/');
     } catch (err) {
-      setError(err.response?.data?.message || 'Registration failed');
+      setError(err.response?.data?.message || 'Invalid email or password');
     } finally {
       setLoading(false);
     }
@@ -46,27 +37,16 @@ export default function RegisterPage() {
         <div className="text-center mb-8">
           <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center mx-auto mb-4 shadow-xl">
             <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
             </svg>
           </div>
-          <h1 className="text-2xl font-bold text-slate-800">Create an account</h1>
-          <p className="text-sm text-slate-500 mt-1">Join Wisora to share and explore knowledge</p>
+          <h1 className="text-2xl font-bold text-slate-800">Welcome back</h1>
+          <p className="text-sm text-slate-500 mt-1">Sign in to continue to Wisora</p>
         </div>
 
         {/* Form */}
         <div className="glass-card p-6 sm:p-8">
           <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <label className="block text-sm font-medium text-slate-600 mb-1.5">Username</label>
-              <input
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="Choose a username"
-                className="input-glass"
-                autoFocus
-              />
-            </div>
             <div>
               <label className="block text-sm font-medium text-slate-600 mb-1.5">Email</label>
               <input
@@ -75,6 +55,7 @@ export default function RegisterPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
                 className="input-glass"
+                autoFocus
               />
             </div>
             <div>
@@ -83,16 +64,6 @@ export default function RegisterPage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="input-glass"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-600 mb-1.5">Confirm Password</label>
-              <input
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="••••••••"
                 className="input-glass"
               />
@@ -111,18 +82,18 @@ export default function RegisterPage() {
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Creating account...
+                  Signing in...
                 </span>
               ) : (
-                'Sign Up'
+                'Sign In'
               )}
             </button>
           </form>
 
           <p className="mt-5 text-center text-sm text-slate-500">
-            Already have an account?{' '}
-            <Link to="/login" className="text-indigo-500 font-medium hover:underline">
-              Sign In
+            Don't have an account?{' '}
+            <Link to="/register" className="text-indigo-500 font-medium hover:underline">
+              Sign Up
             </Link>
           </p>
         </div>

@@ -46,7 +46,6 @@ export default function TopicsPage() {
     }
   };
 
-  // Color palette for topic cards
   const colors = [
     'from-indigo-500 to-blue-500',
     'from-purple-500 to-pink-500',
@@ -116,7 +115,7 @@ export default function TopicsPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {topics.map((topic, i) => (
             <button
-              key={topic.id}
+              key={topic._id}
               onClick={() => navigate(`/?tag=${encodeURIComponent(topic.name)}`)}
               className="glass-card p-5 text-left group animate-slide-up"
               style={{ animationDelay: `${i * 60}ms` }}

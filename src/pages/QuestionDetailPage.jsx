@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useParams, useLocation, Link } from 'react-router-dom';
-import { searchQuestions, postAnswer } from '../api/api';
+import { useParams, Link } from 'react-router-dom';
+import { getQuestionById, getAnswersByQuestion, postAnswer } from '../api/api';
 import { useUser } from '../context/UserContext';
 import LikeButton from '../components/LikeButton';
 import AnswerCard from '../components/AnswerCard';
@@ -8,34 +8,33 @@ import LoadingSpinner from '../components/LoadingSpinner';
 
 export default function QuestionDetailPage() {
   const { id } = useParams();
-  const location = useLocation();
   const { currentUser } = useUser();
-  const [question, setQuestion] = useState(location.state?.question || null);
+  const [question, setQuestion] = useState(null);
   const [answers, setAnswers] = useState([]);
   const [newAnswer, setNewAnswer] = useState('');
-  const [loading, setLoading] = useState(!question);
+  const [loading, setLoading] = useState(true);
   const [posting, setPosting] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    const fetchQuestion = async () => {
-      if (question) {
-        setLoading(false);
-        return;
-      }
+    const fetchData = async () => {
+      setLoading(true);
       try {
-        const res = await searchQuestions();
-        const allQ = res.data || [];
-        const found = allQ.find((q) => String(q.id) === String(id));
-        if (found) setQuestion(found);
+        const [qRes, aRes] = await Promise.allSettled([
+          getQuestionById(id),
+          getAnswersByQuestion(id),
+        ]);
+
+        if (qRes.status === 'fulfilled') setQuestion(qRes.value.data);
+        if (aRes.status === 'fulfilled') setAnswers(aRes.value.data || []);
       } catch {
         // handled by empty state
       } finally {
         setLoading(false);
       }
     };
-    fetchQuestion();
-  }, [id, question]);
+    fetchData();
+  }, [id]);
 
   const handlePostAnswer = async (e) => {
     e.preventDefault();
@@ -43,8 +42,8 @@ export default function QuestionDetailPage() {
     setPosting(true);
     setError('');
     try {
-      const res = await postAnswer(id, currentUser.id, newAnswer.trim());
-      setAnswers((prev) => [...prev, res.data]);
+      const res = await postAnswer(id, newAnswer.trim());
+      setAnswers((prev) => [res.data, ...prev]);
       setNewAnswer('');
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to post answer');
@@ -73,13 +72,13 @@ export default function QuestionDetailPage() {
         {/* Tags */}
         {question.topics && question.topics.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mb-4">
-            {question.topics.map((tag, i) => (
+            {question.topics.map((tag) => (
               <Link
-                key={i}
-                to={`/?tag=${encodeURIComponent(typeof tag === 'string' ? tag : tag)}`}
+                key={tag._id}
+                to={`/?tag=${encodeURIComponent(tag.name)}`}
                 className="tag-chip"
               >
-                {typeof tag === 'string' ? tag : tag}
+                {tag.name}
               </Link>
             ))}
           </div>
@@ -94,10 +93,23 @@ export default function QuestionDetailPage() {
         </p>
 
         <div className="flex items-center justify-between pt-4 border-t border-slate-100">
-          <LikeButton type="questions" id={question.id} />
+          <div className="flex items-center gap-4">
+            <LikeButton targetId={question._id} targetType="Question" />
+            {question.user && (
+              <Link
+                to={`/profile/${question.user._id}`}
+                className="flex items-center gap-2 text-sm text-slate-500 hover:text-indigo-600 transition-colors"
+              >
+                <div className="w-6 h-6 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white text-xs font-bold">
+                  {question.user.username?.[0]?.toUpperCase() || 'U'}
+                </div>
+                <span>{question.user.username}</span>
+              </Link>
+            )}
+          </div>
           <span className="text-xs text-slate-400">
-            {question.created_at
-              ? new Date(question.created_at).toLocaleDateString('en-US', {
+            {question.createdAt
+              ? new Date(question.createdAt).toLocaleDateString('en-US', {
                   month: 'short',
                   day: 'numeric',
                   year: 'numeric',
@@ -119,12 +131,15 @@ export default function QuestionDetailPage() {
         <div className="space-y-4">
           {answers.map((a) => (
             <AnswerCard
-              key={a.id}
+              key={a._id}
               answer={a}
               onUpdate={(updated) =>
                 setAnswers((prev) =>
-                  prev.map((ans) => (ans.id === updated.id ? updated : ans))
+                  prev.map((ans) => (ans._id === updated._id ? updated : ans))
                 )
+              }
+              onDelete={(deletedId) =>
+                setAnswers((prev) => prev.filter((ans) => ans._id !== deletedId))
               }
             />
           ))}
@@ -169,8 +184,8 @@ export default function QuestionDetailPage() {
       ) : (
         <div className="glass-card p-6 text-center">
           <p className="text-sm text-slate-500">
-            <Link to="/register" className="text-indigo-500 font-medium hover:underline">
-              Join Wisora
+            <Link to="/login" className="text-indigo-500 font-medium hover:underline">
+              Sign in
             </Link>{' '}
             to answer this question
           </p>
