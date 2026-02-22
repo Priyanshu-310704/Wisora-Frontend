@@ -57,6 +57,9 @@ export const postAnswer = (questionId, text) =>
 export const getAnswersByQuestion = (questionId) =>
   API.get(`/answers/question/${questionId}`);
 
+export const getUserAnswers = (userId) =>
+  API.get(`/answers/user/${userId}`);
+
 export const editAnswer = (answerId, text) =>
   API.put(`/answers/${answerId}`, { text });
 
