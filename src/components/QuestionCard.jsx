@@ -48,6 +48,24 @@ export default function QuestionCard({ question, index = 0 }) {
         {question.body}
       </p>
 
+      {/* Image Preview */}
+      {question.images && question.images.length > 0 && (
+        <div className="mb-4">
+          <div className="rounded-lg overflow-hidden border border-slate-100 max-h-48 w-full">
+            <img 
+              src={question.images[0]} 
+              alt="Question" 
+              className="w-full h-full object-cover"
+            />
+          </div>
+          {question.images.length > 1 && (
+            <p className="text-[10px] text-slate-400 mt-1 uppercase font-bold tracking-wider">
+              + {question.images.length - 1} more image{question.images.length > 2 ? 's' : ''}
+            </p>
+          )}
+        </div>
+      )}
+
       {/* Footer */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">

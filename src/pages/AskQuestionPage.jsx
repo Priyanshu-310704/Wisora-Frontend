@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createQuestion, getTopics } from '../api/api';
 import { useUser } from '../context/UserContext';
@@ -13,6 +13,8 @@ export default function AskQuestionPage() {
   const [topics, setTopics] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [images, setImages] = useState([]);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     if (!currentUser) {
@@ -43,6 +45,35 @@ export default function AskQuestionPage() {
 
   const removeTag = (tag) => setTags(tags.filter((t) => t !== tag));
 
+  const handlePaste = (e) => {
+    const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf('image') !== -1) {
+        const file = items[i].getAsFile();
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          setImages((prev) => [...prev, event.target.result]);
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+  };
+
+  const handleFileChange = (e) => {
+    const files = Array.from(e.target.files);
+    files.forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setImages((prev) => [...prev, event.target.result]);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const removeImage = (index) => {
+    setImages(images.filter((_, i) => i !== index));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!title.trim() || !body.trim()) {
@@ -55,7 +86,8 @@ export default function AskQuestionPage() {
       const res = await createQuestion(
         title.trim(),
         body.trim(),
-        tags.length > 0 ? tags : undefined
+        tags.length > 0 ? tags : undefined,
+        images.length > 0 ? images : undefined
       );
       navigate(`/question/${res.data._id}`);
     } catch (err) {
@@ -106,10 +138,55 @@ export default function AskQuestionPage() {
             <textarea
               value={body}
               onChange={(e) => setBody(e.target.value)}
-              placeholder="Include all the details someone would need to answer your question..."
+              onPaste={handlePaste}
+              placeholder="Include all the details someone would need to answer your question... (You can also paste images here!)"
               className="textarea-glass"
               rows={6}
             />
+          </div>
+
+          {/* Images */}
+          <div>
+            <label className="block text-sm font-medium text-slate-600 mb-1.5">
+              Images
+            </label>
+            <div className="flex flex-wrap gap-4 mb-3">
+              {images.map((img, index) => (
+                <div key={index} className="relative group w-24 h-24 rounded-lg overflow-hidden border border-slate-200 shadow-sm">
+                  <img src={img} alt="preview" className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => removeImage(index)}
+                    className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                    </svg>
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="w-24 h-24 rounded-lg border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-400 hover:border-blue-400 hover:text-blue-400 transition-colors"
+              >
+                <svg className="w-8 h-8 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                <span className="text-xs font-medium">Add Image</span>
+              </button>
+            </div>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              accept="image/*"
+              multiple
+              className="hidden"
+            />
+            <p className="text-xs text-slate-400">
+              Paste images into the text area or use the button above to upload.
+            </p>
           </div>
 
           {/* Tags */}

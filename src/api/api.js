@@ -35,8 +35,8 @@ export const toggleFollow = (targetUserId) =>
   API.post(`/users/follow/${targetUserId}`);
 
 // ─── Questions ──────────────────────────────────────
-export const createQuestion = (title, body, topics) =>
-  API.post('/questions', { title, body, topics });
+export const createQuestion = (title, body, topics, images) =>
+  API.post('/questions', { title, body, topics, images });
 
 export const getQuestions = (page = 1) =>
   API.get(`/questions?page=${page}`);

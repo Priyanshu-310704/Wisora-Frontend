@@ -92,6 +92,17 @@ export default function QuestionDetailPage() {
           {question.body}
         </p>
 
+        {/* Images */}
+        {question.images && question.images.length > 0 && (
+          <div className="space-y-4 mb-8">
+            {question.images.map((img, index) => (
+              <div key={index} className="rounded-xl overflow-hidden border border-slate-100 shadow-sm transition-transform hover:scale-[1.01] duration-300">
+                <img src={img} alt={`Question upload ${index}`} className="w-full h-auto object-contain max-h-[500px]" />
+              </div>
+            ))}
+          </div>
+        )}
+
         <div className="flex items-center justify-between pt-4 border-t border-slate-100">
           <div className="flex items-center gap-4">
             <LikeButton targetId={question._id} targetType="Question" />
