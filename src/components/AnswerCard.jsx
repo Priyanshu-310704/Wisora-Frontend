@@ -64,8 +64,12 @@ export default function AnswerCard({ answer, onUpdate, onDelete }) {
             to={answer.user?._id ? `/profile/${answer.user._id}` : '#'}
             className="flex items-center gap-2 group"
           >
-            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white text-xs font-bold">
-              {username[0]?.toUpperCase() || 'A'}
+            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white text-[10px] font-bold overflow-hidden">
+              {answer.user?.profilePicture ? (
+                <img src={answer.user.profilePicture} alt="" className="w-full h-full object-cover" />
+              ) : (
+                username[0]?.toUpperCase() || 'A'
+              )}
             </div>
             <span className="text-sm font-medium text-slate-600 group-hover:text-indigo-600 transition-colors">
               {username}

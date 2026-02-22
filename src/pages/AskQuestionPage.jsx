@@ -1,11 +1,14 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { createQuestion, getTopics } from '../api/api';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { createQuestion, getTopics, getGroupDetails } from '../api/api';
 import { useUser } from '../context/UserContext';
 
 export default function AskQuestionPage() {
   const { currentUser } = useUser();
   const navigate = useNavigate();
+  const location = useLocation();
+  const groupId = location.state?.groupId;
+  
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [tagInput, setTagInput] = useState('');
@@ -14,6 +17,7 @@ export default function AskQuestionPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [images, setImages] = useState([]);
+  const [groupInfo, setGroupInfo] = useState(null);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -21,16 +25,20 @@ export default function AskQuestionPage() {
       navigate('/login');
       return;
     }
-    const fetchTopics = async () => {
+    const fetchData = async () => {
       try {
-        const res = await getTopics();
-        setTopics(res.data || []);
+        const [topicsRes, groupRes] = await Promise.all([
+          getTopics(),
+          groupId ? getGroupDetails(groupId) : Promise.resolve({ data: null })
+        ]);
+        setTopics(topicsRes.data || []);
+        if (groupRes.data) setGroupInfo(groupRes.data.group);
       } catch {
         // ok
       }
     };
-    fetchTopics();
-  }, [currentUser, navigate]);
+    fetchData();
+  }, [currentUser, navigate, groupId]);
 
   const handleAddTag = (e) => {
     if (e.key === 'Enter' || e.key === ',') {
@@ -87,7 +95,8 @@ export default function AskQuestionPage() {
         title.trim(),
         body.trim(),
         tags.length > 0 ? tags : undefined,
-        images.length > 0 ? images : undefined
+        images.length > 0 ? images : undefined,
+        groupId
       );
       navigate(`/question/${res.data._id}`);
     } catch (err) {
@@ -101,11 +110,17 @@ export default function AskQuestionPage() {
     <div className="max-w-2xl mx-auto animate-slide-up">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">
-          Ask a <span className="gradient-text">Question</span>
+        <h1 className="text-4xl font-black text-[var(--text-main)] tracking-tight mb-2">
+          {groupInfo ? (
+            <>Post to <span className="gradient-text">{groupInfo.name}</span></>
+          ) : (
+            <>Ask a <span className="gradient-text">Question</span></>
+          )}
         </h1>
-        <p className="text-sm text-slate-500 mt-1">
-          Share your curiosity with the community
+        <p className="text-[var(--text-muted)] font-medium text-lg">
+          {groupInfo 
+            ? "Your discussion will only be visible to group members."
+            : "Share your curiosity with the Wisora community."}
         </p>
       </div>
 

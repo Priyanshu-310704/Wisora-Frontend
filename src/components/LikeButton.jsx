@@ -61,7 +61,7 @@ export default function LikeButton({ targetId, targetType }) {
   return (
     <button
       onClick={handleLike}
-      className={`group flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-300 ${
+      className={`group flex items-center gap-1 px-2.5 py-1.5 rounded-full text-sm font-medium transition-all duration-300 ${
         liked
           ? 'bg-gradient-to-r from-pink-50 to-rose-50 text-rose-500 border border-rose-200'
           : 'bg-white/50 text-slate-400 border border-slate-200 hover:text-rose-400 hover:border-rose-200 hover:bg-rose-50/50'

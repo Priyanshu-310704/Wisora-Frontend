@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { commentOnAnswer, replyToComment, getCommentsByParent } from '../api/api';
+import { commentOnAnswer, replyToComment, getCommentsByParent, updateComment, deleteComment } from '../api/api';
 import { useUser } from '../context/UserContext';
 import LikeButton from './LikeButton';
 import { Link } from 'react-router-dom';
@@ -10,6 +10,9 @@ function SingleComment({ comment, depth = 0 }) {
   const [replyText, setReplyText] = useState('');
   const [replies, setReplies] = useState(comment.replies || []);
   const [submitting, setSubmitting] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editText, setEditText] = useState(comment.text);
+  const [deleted, setDeleted] = useState(false);
 
   const handleReply = async () => {
     if (!replyText.trim() || !currentUser) return;
@@ -26,6 +29,30 @@ function SingleComment({ comment, depth = 0 }) {
     }
   };
 
+  const handleEdit = async () => {
+    if (!editText.trim()) return;
+    setSubmitting(true);
+    try {
+      const res = await updateComment(comment._id, editText.trim());
+      comment.text = res.data.text; // local update
+      setEditing(false);
+    } catch {
+      // stay in edit
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!confirm('Delete this comment?')) return;
+    try {
+      await deleteComment(comment._id);
+      setDeleted(true);
+    } catch {
+      alert('Failed to delete comment');
+    }
+  };
+
   const timeAgo = (dateStr) => {
     if (!dateStr) return '';
     const d = new Date(dateStr);
@@ -37,26 +64,56 @@ function SingleComment({ comment, depth = 0 }) {
     return `${Math.floor(diff / 86400)}d ago`;
   };
 
+  const isOwner = currentUser && String(currentUser._id) === String(comment.user?._id || comment.user);
   const username = comment.user?.username || 'Anonymous';
+
+  if (deleted) return null;
 
   return (
     <div className={`${depth > 0 ? 'ml-6 pl-4 border-l-2 border-indigo-100/60' : ''}`}>
       <div className="py-3">
         <div className="flex items-start gap-2.5">
-          <div className="w-6 h-6 rounded-full bg-gradient-to-br from-violet-400 to-fuchsia-400 flex items-center justify-center text-white text-[10px] font-bold mt-0.5 shrink-0">
-            {username[0]?.toUpperCase() || 'C'}
+          <div className="w-6 h-6 rounded-full bg-gradient-to-br from-violet-400 to-fuchsia-400 flex items-center justify-center text-white text-[10px] font-bold mt-0.5 shrink-0 overflow-hidden">
+            {comment.user?.profilePicture ? (
+              <img src={comment.user.profilePicture} alt="" className="w-full h-full object-cover" />
+            ) : (
+              username[0]?.toUpperCase() || 'C'
+            )}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <Link
-                to={comment.user?._id ? `/profile/${comment.user._id}` : '#'}
-                className="text-xs font-medium text-slate-600 hover:text-indigo-600 transition-colors"
-              >
-                {username}
-              </Link>
-              <span className="text-xs text-slate-400">{timeAgo(comment.createdAt)}</span>
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-2">
+                <Link
+                  to={comment.user?._id ? `/profile/${comment.user._id}` : '#'}
+                  className="text-xs font-medium text-slate-600 hover:text-indigo-600 transition-colors"
+                >
+                  {username}
+                </Link>
+                <span className="text-xs text-slate-400">{timeAgo(comment.createdAt)}</span>
+              </div>
+              
+              {isOwner && !editing && (
+                <div className="flex items-center gap-2">
+                  <button onClick={() => setEditing(true)} className="text-[10px] text-slate-400 hover:text-indigo-500">Edit</button>
+                  <button onClick={handleDelete} className="text-[10px] text-slate-400 hover:text-red-500">Delete</button>
+                </div>
+              )}
             </div>
-            <p className="text-sm text-slate-700 leading-relaxed">{comment.text}</p>
+            {editing ? (
+              <div className="mt-1 flex gap-2">
+                <input
+                  type="text"
+                  value={editText}
+                  onChange={(e) => setEditText(e.target.value)}
+                  className="input-glass text-xs py-1 flex-1"
+                  autoFocus
+                />
+                <button onClick={handleEdit} className="text-xs text-indigo-500">Save</button>
+                <button onClick={() => setEditing(false)} className="text-xs text-slate-400">Cancel</button>
+              </div>
+            ) : (
+              <p className="text-sm text-slate-700 leading-relaxed">{comment.text}</p>
+            )}
             <div className="flex items-center gap-3 mt-2">
               <LikeButton targetId={comment._id} targetType="Comment" />
               {currentUser && (

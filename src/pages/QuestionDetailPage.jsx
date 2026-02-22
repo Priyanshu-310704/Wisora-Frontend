@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { getQuestionById, getAnswersByQuestion, postAnswer } from '../api/api';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { getQuestionById, getAnswersByQuestion, postAnswer, deleteQuestion } from '../api/api';
 import { useUser } from '../context/UserContext';
 import LikeButton from '../components/LikeButton';
 import AnswerCard from '../components/AnswerCard';
@@ -8,6 +8,7 @@ import LoadingSpinner from '../components/LoadingSpinner';
 
 export default function QuestionDetailPage() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { currentUser } = useUser();
   const [question, setQuestion] = useState(null);
   const [answers, setAnswers] = useState([]);
@@ -52,6 +53,16 @@ export default function QuestionDetailPage() {
     }
   };
 
+  const handleDeleteQuestion = async () => {
+    if (!confirm('Are you sure you want to delete this question? This will remove all answers and comments as well.')) return;
+    try {
+      await deleteQuestion(id);
+      navigate('/');
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to delete question');
+    }
+  };
+
   if (loading) return <LoadingSpinner text="Loading question..." />;
 
   if (!question) {
@@ -84,11 +95,11 @@ export default function QuestionDetailPage() {
           </div>
         )}
 
-        <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 leading-tight mb-4">
+        <h1 className="text-3xl sm:text-4xl font-black text-[var(--text-main)] tracking-tight mb-4">
           {question.title}
         </h1>
 
-        <p className="text-base text-slate-600 leading-relaxed whitespace-pre-wrap mb-6">
+        <p className="text-lg text-[var(--text-main)] leading-relaxed mb-8 opacity-90 font-medium">
           {question.body}
         </p>
 
@@ -106,13 +117,27 @@ export default function QuestionDetailPage() {
         <div className="flex items-center justify-between pt-4 border-t border-slate-100">
           <div className="flex items-center gap-4">
             <LikeButton targetId={question._id} targetType="Question" />
+            
+            {currentUser && String(currentUser._id) === String(question.user?._id) && (
+              <button
+                onClick={handleDeleteQuestion}
+                className="text-xs text-red-400 hover:text-red-600 font-medium transition-colors"
+              >
+                Delete Question
+              </button>
+            )}
+
             {question.user && (
               <Link
                 to={`/profile/${question.user._id}`}
                 className="flex items-center gap-2 text-sm text-slate-500 hover:text-indigo-600 transition-colors"
               >
-                <div className="w-6 h-6 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white text-xs font-bold">
-                  {question.user.username?.[0]?.toUpperCase() || 'U'}
+                <div className="w-6 h-6 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white text-[10px] font-bold overflow-hidden">
+                  {question.user.profilePicture ? (
+                    <img src={question.user.profilePicture} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    question.user.username?.[0]?.toUpperCase() || 'U'
+                  )}
                 </div>
                 <span>{question.user.username}</span>
               </Link>

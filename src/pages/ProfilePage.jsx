@@ -156,7 +156,7 @@ export default function ProfilePage() {
           {/* Avatar */}
           <div className="relative flex items-end justify-between -mt-12 mb-4">
             <div className="relative group">
-              <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white text-3xl font-bold shadow-xl border-4 border-white overflow-hidden">
+              <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white text-3xl font-bold shadow-xl border-4 border-[var(--surface-card)] overflow-hidden">
                 {editData.profilePicture || profile.profilePicture ? (
                   <img 
                     src={editing ? editData.profilePicture : profile.profilePicture} 
@@ -231,10 +231,10 @@ export default function ProfilePage() {
             </div>
           ) : (
             <div>
-              <h1 className="text-2xl font-bold text-slate-800">{profile.username}</h1>
-              <p className="text-sm text-slate-500 mt-0.5">{profile.email}</p>
+              <h1 className="text-2xl font-black text-[var(--text-main)] tracking-tight">{profile.username}</h1>
+              <p className="text-sm text-[var(--text-muted)] mt-0.5 font-medium">{profile.email}</p>
               {profile.bio && (
-                <p className="text-sm text-slate-600 mt-3 leading-relaxed">{profile.bio}</p>
+                <p className="text-sm text-[var(--text-main)] mt-3 leading-relaxed opacity-80 font-medium">{profile.bio}</p>
               )}
             </div>
           )}
@@ -252,12 +252,12 @@ export default function ProfilePage() {
             key={stat.id} 
             onClick={() => setActiveTab(stat.id)}
             className={`glass-card p-4 text-center transition-all duration-200 border-2 ${
-              activeTab === stat.id ? 'border-indigo-500 bg-indigo-50/30 scale-[1.02]' : 'border-transparent'
+              activeTab === stat.id ? 'border-indigo-500 bg-indigo-500/10 scale-[1.02]' : 'border-transparent'
             }`}
           >
             <div className="text-2xl mb-1">{stat.icon}</div>
-            <div className="text-xl font-bold text-slate-800">{stat.value}</div>
-            <div className="text-xs text-slate-400">{stat.label}</div>
+            <div className="text-xl font-bold text-[var(--text-main)]">{stat.value}</div>
+            <div className="text-xs text-[var(--text-muted)] font-black uppercase tracking-widest">{stat.label}</div>
           </button>
         ))}
       </div>
@@ -327,8 +327,12 @@ export default function ProfilePage() {
                     to={`/profile/${f._id}`}
                     className="flex items-center gap-2 p-2 rounded-lg hover:bg-slate-50 transition-colors"
                   >
-                    <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-xs font-bold text-slate-500">
-                      {f.username?.[0]?.toUpperCase()}
+                    <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-[10px] font-bold text-slate-500 overflow-hidden">
+                      {f.profilePicture ? (
+                        <img src={f.profilePicture} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        f.username?.[0]?.toUpperCase() || '?'
+                      )}
                     </div>
                     <span className="text-sm text-slate-700">{f.username}</span>
                   </Link>

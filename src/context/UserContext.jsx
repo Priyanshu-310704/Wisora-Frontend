@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import { getMe } from '../api/api';
 
 const UserContext = createContext(null);
 
@@ -15,6 +16,26 @@ export function UserProvider({ children }) {
       localStorage.removeItem('wisora_user');
     }
   }, [currentUser]);
+
+  // Sync with backend on startup
+  useEffect(() => {
+    const syncUser = async () => {
+      const token = localStorage.getItem('token');
+      if (token && currentUser) {
+        try {
+          const res = await getMe();
+          if (res.data.user) {
+            setCurrentUser(res.data.user);
+          }
+        } catch (err) {
+          if (err.response?.status === 401) {
+            logout();
+          }
+        }
+      }
+    };
+    syncUser();
+  }, []); // Run once on mount
 
   const login = (data) => {
     // Expects { token, user } from backend

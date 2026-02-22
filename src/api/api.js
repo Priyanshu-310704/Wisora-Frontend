@@ -28,15 +28,23 @@ export const getMe = () =>
 export const getUserProfile = (userId) =>
   API.get(`/users/${userId}`);
 
-export const updateUserProfile = (userId, data) =>
-  API.put(`/users/${userId}`, data);
+export const updateUserProfile = (id, data) => API.put(`/users/${id}`, data);
+export const toggleFollow = (targetId) => API.post(`/users/follow/${targetId}`);
+export const getSuggestedUsers = () => API.get('/users/suggested');
+export const getCommunityUsers = (search = '') => API.get(`/users/community?search=${search}`);
 
-export const toggleFollow = (targetUserId) =>
-  API.post(`/users/follow/${targetUserId}`);
+// ─── Groups ──────────────────────────────────────────
+export const createGroup = (data) => API.post('/groups', data);
+export const getMyGroups = () => API.get('/groups/me');
+export const getPublicGroups = () => API.get('/groups/public');
+export const getGroupDetails = (id) => API.get(`/groups/${id}`);
+export const joinGroup = (id) => API.post(`/groups/${id}/join`);
+export const addGroupMember = (groupId, userId) => API.post(`/groups/${groupId}/members/${userId}`);
+export const removeGroupMember = (groupId, userId) => API.delete(`/groups/${groupId}/members/${userId}`);
 
 // ─── Questions ──────────────────────────────────────
-export const createQuestion = (title, body, topics, images) =>
-  API.post('/questions', { title, body, topics, images });
+export const createQuestion = (title, body, topics, images, groupId) =>
+  API.post('/questions', { title, body, topics, images, groupId });
 
 export const getQuestions = (page = 1) =>
   API.get(`/questions?page=${page}`);
@@ -60,6 +68,11 @@ export const getAnswersByQuestion = (questionId) =>
 export const getUserAnswers = (userId) =>
   API.get(`/answers/user/${userId}`);
 
+// Notifications
+export const getNotifications = () => API.get("/notifications");
+export const markNotificationRead = (id) => API.patch(`/notifications/read/${id}`);
+export const markAllNotificationsRead = () => API.patch("/notifications/read-all");
+
 export const editAnswer = (answerId, text) =>
   API.put(`/answers/${answerId}`, { text });
 
@@ -75,6 +88,15 @@ export const replyToComment = (commentId, text) =>
 
 export const getCommentsByParent = (parentId) =>
   API.get(`/comments/${parentId}`);
+
+export const deleteQuestion = (id) =>
+  API.delete(`/questions/${id}`);
+
+export const updateComment = (id, text) =>
+  API.put(`/comments/${id}`, { text });
+
+export const deleteComment = (id) =>
+  API.delete(`/comments/${id}`);
 
 // ─── Likes ──────────────────────────────────────────
 export const toggleLike = (targetId, targetType) =>

@@ -62,10 +62,10 @@ export default function TopicsPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">
+          <h1 className="text-2xl sm:text-3xl font-bold text-[var(--text-main)]">
             Explore <span className="gradient-text">Topics</span>
           </h1>
-          <p className="text-sm text-slate-500 mt-1">
+          <p className="text-sm text-[var(--text-muted)] mt-1">
             Browse topics that interest you
           </p>
         </div>
@@ -129,10 +129,10 @@ export default function TopicsPage() {
                   {topic.name[0]?.toUpperCase()}
                 </div>
                 <div>
-                  <h3 className="font-semibold text-slate-800 group-hover:text-indigo-600 transition-colors">
+                  <h3 className="font-semibold text-[var(--text-main)] group-hover:text-indigo-600 transition-colors">
                     {topic.name}
                   </h3>
-                  <p className="text-xs text-slate-400">Browse questions →</p>
+                  <p className="text-xs text-[var(--text-muted)]">Browse questions →</p>
                 </div>
               </div>
             </button>
